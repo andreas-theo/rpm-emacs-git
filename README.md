@@ -8,7 +8,7 @@ branch and builds Emacs with the pgtk flag.
 Instructions based on this [blog
 post](https://hobo.house/2017/09/03/automate-rpm-builds-from-git-sources-using-copr/)
 
-# Testing build locally
+# Testing the build locally
 
 ```
 sudo dnf builddep emacs.spec
