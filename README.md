@@ -1,6 +1,9 @@
-[![Copr build status](https://copr.fedorainfracloud.org/coprs/robot/emacs-git/package/emacs/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/robot/emacs-git/package/emacs/)
+# Emacs-pgtk-git
+This is a fork of Wojtek242-RPM's Emacs RPM build. It tracks Emacs' development
+branch and builds Emacs with the pgtk flag.
 
-# Emacs-git
+
+# Building an RPM from git sources
 
 Instructions based on this [blog
 post](https://hobo.house/2017/09/03/automate-rpm-builds-from-git-sources-using-copr/)
