@@ -497,6 +497,7 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/*.desktop
 %{_datadir}/emacs/%{version}/etc
 %{_datadir}/emacs/%{version}/site-lisp
 %{_libexecdir}/emacs
+%{_libdir}/emacs/%{version}
 %{_userunitdir}/emacs.service
 %attr(0644,root,root) %config(noreplace) %{_datadir}/emacs/site-lisp/default.el
 %attr(0644,root,root) %config %{_datadir}/emacs/site-lisp/site-start.el
