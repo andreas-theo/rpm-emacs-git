@@ -2,7 +2,7 @@
 
 %define build_timestamp %(date +"%Y%m%d")
 
-%define git_revision c223e2aefcabc7ad29c4be186fc07825bbcce196
+%define git_revision 751c8f88c4faddb2b4f5d5ba3f051e8cd2c0153c
 %define git_revision_short %(echo %{git_revision} | head -c 14)
 
 # This file is encoded in UTF-8.  -*- coding: utf-8 -*-
@@ -266,10 +266,12 @@ ln -s ../configure .
 
 LDFLAGS=-Wl,-z,relro;  export LDFLAGS;
 
-%configure --with-dbus --with-gif --with-jpeg --with-png --with-rsvg \
-           --with-tiff --with-xft --with-xpm --with-x-toolkit=gtk3 --with-gpm=no \
-           --with-xwidgets --with-modules --with-harfbuzz --with-cairo --with-json
-make bootstrap  -j $(nproc --all)
+%configure --with-dbus --with-gif --with-jpeg --with-png --with-rsvg --with-tiff \
+ --with-xft --with-xpm --with-gpm=no --with-modules --with-harfbuzz --with-cairo \
+ --with-json --with-native-compilation --enable-link-time-optimization \
+ --with-pgtk
+
+make bootstrap  -j $(nproc --all) NATIVE_FULL_AOT=1
 %{setarch} %make_build
 cd ..
 
@@ -511,6 +513,9 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/*.desktop
 %{_includedir}/emacs-module.h
 
 %changelog
+* Fri Mar 18 2022 Andreas Theodosiou <atheodosiou@protonmail.ch> - 2:29.0.50
+- Build with pgtk directly from development branch
+
 * Sat Aug  7 2021 Dan Čermák <dan.cermak@cgc-instruments.com> - 1:27.2-9
 - Add Requires: info to fix info-mode
 - Fixes rhbz#1989264
