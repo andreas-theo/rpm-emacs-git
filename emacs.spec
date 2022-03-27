@@ -285,6 +285,7 @@ make bootstrap  -j $(nproc --all) NATIVE_FULL_AOT=1
 %{setarch} %make_build
 cd ..
 
+%if %{enable_lucid}
 # Build Lucid binary
 mkdir build-lucid && cd build-lucid
 ln -s ../configure .
@@ -297,6 +298,7 @@ LDFLAGS=-Wl,-z,relro;  export LDFLAGS;
 make bootstrap -j $(nproc --all)
 %{setarch} %make_build
 cd ..
+%endif
 
 %if %{enable_nox}
 # Build binary without X support
