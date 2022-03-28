@@ -1,9 +1,9 @@
 %global _hardened_build 1
 
-%define build_timestamp %(date +"%Y%m%d")
-
-%define git_revision 751c8f88c4faddb2b4f5d5ba3f051e8cd2c0153c
-%define git_revision_short %(echo %{git_revision} | head -c 14)
+%global commit      0e7314f6f15a20cb2ae712c09bb201f571823a6f
+%global shortcommit %(c=%{commit}; echo ${c:0:7})
+%global commit_date 20220328
+%global gitrel      .%{commit_date}.git%{shortcommit}
 
 # disable these for now until .pdmp is fixed
 %global enable_lucid 0
@@ -14,15 +14,15 @@ Summary:       GNU Emacs text editor
 Name:          emacs
 Epoch:         1
 Version:       29.0.50
-Release:       131.%{build_timestamp}git%{git_revision_short}%{?dist}
+Release:       1%{gitrel}%{?dist}
 License:       GPLv3+ and CC0-1.0
 URL:           http://www.gnu.org/software/emacs/
-Source0:       https://github.com/emacs-mirror/emacs/archive/%{git_revision}.tar.gz#/%{name}-%{version}-%{git_revision}.tar.gz
-# Source1:       https://ftp.gnu.org/gnu/emacs/emacs-%%{version}.tar.xz.sig
+Source0:       https://github.com/emacs-mirror/emacs/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 # generate the keyring via:
 # wget https://ftp.gnu.org/gnu/gnu-keyring.gpg
-# gpg2 --keyring ./gnu-keyring.gpg --armor --export E6C9029C363AD41D787A8EBB91C1262F01EB8D39 > gpgkey-E6C9029C363AD41D787A8EBB91C1262F01EB8D39.gpg
-# Source2:       gpgkey-E6C9029C363AD41D787A8EBB91C1262F01EB8D39.gpg
+# gpg2 --import gnu-keyring.gpg
+# gpg2 --armor --export D405AA2C862C54F17EEE6BE0E8BCD7866AFCF978 > gpgkey-D405AA2C862C54F17EEE6BE0E8BCD7866AFCF978.gpg
+Source2:       gpgkey-D405AA2C862C54F17EEE6BE0E8BCD7866AFCF978.gpg
 # Source3:       emacs.desktop
 Source4:       dotemacs.el
 Source5:       site-start.el
@@ -30,14 +30,10 @@ Source6:       default.el
 # Emacs Terminal Mode, #551949, #617355
 Source7:       emacs-terminal.desktop
 Source8:       emacs-terminal.sh
-Source10:      %{name}.appdata.xml
-# rhbz#713600
+Source9:       emacs.service
+
 Patch1:        emacs-spellchecker.patch
 Patch2:        emacs-system-crypto-policies.patch
-Patch3:        emacs-glibc-2.34.patch
-Patch4:        emacs-libdir-vs-systemd.patch
-# Patch5:        https://lists.gnu.org/archive/html/bug-gnu-emacs/2021-04/txt0tY7uKvJKS.txt#./emacs-modula2.patch
-# Patch6:        Use-a-64KB-page-size-for-pdump.patch
 
 BuildRequires: gcc
 BuildRequires: atk-devel
@@ -47,6 +43,7 @@ BuildRequires: fontconfig-devel
 BuildRequires: dbus-devel
 BuildRequires: giflib-devel
 BuildRequires: glibc-devel
+BuildRequires: libgccjit-devel
 BuildRequires: libpng-devel
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: libjpeg-turbo
@@ -75,12 +72,10 @@ BuildRequires: cairo
 BuildRequires: texinfo
 BuildRequires: gzip
 BuildRequires: desktop-file-utils
-BuildRequires: libappstream-glib
 BuildRequires: libacl-devel
 BuildRequires: harfbuzz-devel
 BuildRequires: jansson-devel
 BuildRequires: systemd-devel
-BuildRequires: libgccjit-devel
 BuildRequires: lcms2-devel
 
 BuildRequires: gtk3-devel
@@ -88,20 +83,16 @@ BuildRequires: webkit2gtk3-devel
 
 BuildRequires: gnupg2
 
+%if %{enable_lucid}
 # For lucid
 BuildRequires: Xaw3d-devel
-
-# For docs
-BuildRequires: texinfo-tex
-BuildRequires: texlive-eurosym
+%endif
 
 %ifarch %{ix86}
 BuildRequires: util-linux
 %endif
-BuildRequires: make
 
-# Emacs requires info for info mode, rhbz#1989264
-Requires:      info
+
 # Emacs doesn't run without dejavu-sans-mono-fonts, rhbz#732422
 Requires:      desktop-file-utils
 Requires:      dejavu-sans-mono-fonts
@@ -168,7 +159,6 @@ License:       GPLv3+ and GFDL and BSD
 Requires(preun): %{_sbindir}/alternatives
 Requires(posttrans): %{_sbindir}/alternatives
 Requires:      %{name}-filesystem = %{epoch}:%{version}-%{release}
-Recommends:    enchant2
 Provides:      %{name}-el = %{epoch}:%{version}-%{release}
 Obsoletes:     emacs-el < 1:24.3-29
 
@@ -208,25 +198,11 @@ Summary: Development header files for Emacs
 Development header files for Emacs.
 
 %prep
-# %%{gpgverify} --keyring='%%{SOURCE2}' --signature='%%{SOURCE1}' --data='%%{SOURCE0}'
-%setup -q -n emacs-%{git_revision}
+%setup -q -n emacs-%{commit}
 
 %patch1 -p1 -b .spellchecker
 %patch2 -p1 -b .system-crypto-policies
-# %%patch3 -p1 -b .glibc2.34
-%patch4 -p1 -b .libdir-vs-systemd
-# %%patch5 -p1
-# %%patch6 -p1
-./autogen.sh
 
-# Since we are building from the git repo we must also build the info files.
-# `make docs || make docs` looks stupid, but works
-make docs || make docs || make docs
-
-# Re-autogen
-mv info temp
-make distclean
-mv temp info
 ./autogen.sh
 
 grep -v "tetris.elc" lisp/Makefile.in > lisp/Makefile.in.new \
@@ -237,23 +213,6 @@ grep -v "pong.elc" lisp/Makefile.in > lisp/Makefile.in.new \
 # Avoid trademark issues
 rm -f lisp/play/tetris.el lisp/play/tetris.elc
 rm -f lisp/play/pong.el lisp/play/pong.el
-
-# Sorted list of info files
-%define info_files ada-mode auth autotype bovine calc ccmode cl dbus dired-x ebrowse ede ediff edt efaq-w32 efaq eieio eintr elisp emacs-gnutls emacs-mime emacs epa erc ert eshell eudc eww flymake forms gnus htmlfontify idlwave ido info mairix-el message mh-e newsticker nxml-mode octave-mode org pcl-cvs pgg rcirc reftex remember sasl sc semantic ses sieve smtpmail speedbar srecode todo-mode tramp url vhdl-mode vip viper widget wisent woman
-
-# Since the list of info files has to be maintained, check if all info files
-# from the upstream tarball are actually present in %%info_files.
-cd info
-fs=( $(ls *.info) )
-is=( %info_files  )
-files=$(echo ${fs[*]} | sed 's/\.info//'g | sort | tr -d '\n')
-for i in $(seq 0 $(( ${#fs[*]} - 1 ))); do
-  if test "${fs[$i]}" != "${is[$i]}.info"; then
-    echo Please update %%info_files: ${fs[$i]} != ${is[$i]}.info >&2
-    break
-  fi
-done
-cd ..
 
 %ifarch %{ix86}
 %define setarch setarch %{_arch} -R
@@ -276,13 +235,30 @@ ln -s ../configure .
 
 LDFLAGS=-Wl,-z,relro;  export LDFLAGS;
 
-%configure --with-dbus --with-gif --with-jpeg --with-png --with-rsvg --with-tiff \
- --with-xft --with-xpm --with-gpm=no --with-modules --with-harfbuzz --with-cairo \
- --with-json --with-native-compilation --enable-link-time-optimization \
- --with-pgtk
+%configure --with-dbus --with-gif --with-jpeg --with-png --with-rsvg \
+            --with-tiff --with-xft --with-xpm --with-gpm=no \
+            --with-xwidgets --with-modules --with-harfbuzz --with-cairo --with-json \
+            --with-pgtk --with-native-compilation --enable-link-time-optimization
 
-make bootstrap  -j $(nproc --all) NATIVE_FULL_AOT=1
+%make_build NATIVE_FULL_AOT=1 bootstrap
 %{setarch} %make_build
+cd ..
+
+# Sorted list of info files
+%define info_files ada-mode auth autotype bovine calc ccmode cl dbus dired-x ebrowse ede ediff edt efaq-w32 efaq eieio eintr elisp emacs-gnutls emacs-mime emacs epa erc ert eshell eudc eww flymake forms gnus htmlfontify idlwave ido info mairix-el message mh-e newsticker nxml-mode octave-mode org pcl-cvs pgg rcirc reftex remember sasl sc semantic ses sieve smtpmail speedbar srecode todo-mode tramp url vhdl-mode vip viper widget wisent woman
+
+# Since the list of info files has to be maintained, check if all info files
+# from the upstream tarball are actually present in %%info_files.
+cd info
+fs=( $(ls *.info) )
+is=( %info_files  )
+files=$(echo ${fs[*]} | sed 's/\.info//'g | sort | tr -d '\n')
+for i in $(seq 0 $(( ${#fs[*]} - 1 ))); do
+  if test "${fs[$i]}" != "${is[$i]}.info"; then
+    echo Please update %%info_files: ${fs[$i]} != ${is[$i]}.info >&2
+    break
+  fi
+done
 cd ..
 
 %if %{enable_lucid}
@@ -294,8 +270,8 @@ LDFLAGS=-Wl,-z,relro;  export LDFLAGS;
 
 %configure --with-dbus --with-gif --with-jpeg --with-png --with-rsvg \
            --with-tiff --with-xft --with-xpm --with-x-toolkit=lucid --with-gpm=no \
-           --with-modules --with-harfbuzz --with-cairo --with-json
-make bootstrap -j $(nproc --all)
+           --with-modules --enable-link-time-optimization
+%make_build bootstrap
 %{setarch} %make_build
 cd ..
 %endif
@@ -304,13 +280,10 @@ cd ..
 # Build binary without X support
 mkdir build-nox && cd build-nox
 ln -s ../configure .
-%configure --with-x=no --with-modules --with-json
+%configure --with-x=no --with-modules --enable-link-time-optimization
 %{setarch} %make_build
 cd ..
 %endif
-
-# Remove versioned file so that we end up with .1 suffix and only one DOC file
-# rm build-{gtk,lucid,nox}/src/emacs-%{version}.*
 
 # Create pkgconfig file
 cat > emacs.pc << EOF
@@ -333,38 +306,30 @@ cat > macros.emacs << EOF
 EOF
 
 %install
-mkdir -p %{buildroot}%{_bindir}
-
 cd build-gtk
-%make_install -j $(nproc --all)
+%make_install
+
 cd ..
-install -p -m 0644 build-gtk/src/emacs.pdmp %{buildroot}%{_bindir}/emacs-%{version}.pdmp
 
 # Let alternatives manage the symlink
 rm %{buildroot}%{_bindir}/emacs
 touch %{buildroot}%{_bindir}/emacs
 
-# Remove the emacsclient desktop file
-rm %{buildroot}%{_datadir}/applications/emacsclient.desktop
-rm %{buildroot}%{_datadir}/applications/emacsclient-mail.desktop
-
-# # Remove emacs.pdmp from common
-# rm %%{buildroot}%%{emacs_libexecdir}/emacs.pdmp
-
 # Do not compress the files which implement compression itself (#484830)
 gunzip %{buildroot}%{_datadir}/emacs/%{version}/lisp/jka-compr.el.gz
 gunzip %{buildroot}%{_datadir}/emacs/%{version}/lisp/jka-cmpr-hook.el.gz
 
+# Install emacs.pdmp of the emacs with GTK+
+install -p -m 0644 build-gtk/src/emacs.pdmp %{buildroot}%{_bindir}/emacs-%{version}.pdmp
+
 %if %{enable_lucid}
 # Install the emacs with LUCID toolkit
 install -p -m 0755 build-lucid/src/emacs %{buildroot}%{_bindir}/emacs-%{version}-lucid
-install -p -m 0644 build-lucid/src/emacs.pdmp %{buildroot}%{_bindir}/emacs-%{version}-lucid.pdmp
 %endif
 
 %if %{enable_nox}
 # Install the emacs without X
 install -p -m 0755 build-nox/src/emacs %{buildroot}%{_bindir}/emacs-%{version}-nox
-install -p -m 0644 build-nox/src/emacs.pdmp %{buildroot}%{_bindir}/emacs-%{version}-nox.pdmp
 %endif
 
 # Make sure movemail isn't setgid
@@ -396,12 +361,6 @@ install -p -m 0644 %SOURCE4 %{buildroot}%{_sysconfdir}/skel/.emacs
 mkdir -p %{buildroot}/%{pkgconfig}
 install -p -m 0644 emacs.pc %{buildroot}/%{pkgconfig}
 
-# Install app data
-mkdir -p %{buildroot}/%{_datadir}/appdata
-cp -a %SOURCE10 %{buildroot}/%{_datadir}/appdata
-# Upstream ships its own appdata file, but it's quite terse.
-rm %{buildroot}/%{_metainfodir}/emacs.metainfo.xml
-
 # Install rpm macro definition file
 mkdir -p %{buildroot}%{_rpmconfigdir}/macros.d
 install -p -m 0644 macros.emacs %{buildroot}%{_rpmconfigdir}/macros.d/
@@ -412,12 +371,17 @@ install -p -m 755 %SOURCE8 %{buildroot}%{_bindir}/emacs-terminal
 # After everything is installed, remove info dir
 rm -f %{buildroot}%{_infodir}/dir
 
+# Installing service file
+mkdir -p %{buildroot}%{_userunitdir}
+# Emacs 26.1 installs the upstream unit file to /usr/lib64 on 64bit archs, we don't want that
+mv %{buildroot}/usr/lib64/systemd/user/emacs.service %{buildroot}%{_userunitdir}/emacs.service
+
 # Install desktop files
+mkdir -p %{buildroot}%{_datadir}/applications
+# desktop-file-install --dir=%{buildroot}%{_datadir}/applications \
+#                      %SOURCE3
 desktop-file-install --dir=%{buildroot}%{_datadir}/applications \
                      %SOURCE7
-
-# Remove duplicate desktop-related files
-rm %{buildroot}%{_datadir}/%{name}/%{version}/etc/%{name}.{desktop,service}
 
 #
 # Create file lists
@@ -441,59 +405,60 @@ cat el-*-files common-lisp-dir-files > el-filelist
 # Remove old icon
 rm %{buildroot}%{_datadir}/icons/hicolor/scalable/mimetypes/emacs-document23.svg
 
-%check
-appstream-util validate-relax --nonet %{buildroot}%{_datadir}/appdata/*.appdata.xml
-desktop-file-validate %{buildroot}/%{_datadir}/applications/*.desktop
+# remove debug info
+rm -rf %{buildroot}%{prefix}/lib/debug/usr/libexec/emacs/28.0.50
 
 %preun
-%{_sbindir}/alternatives --remove emacs %{_bindir}/emacs-%{version} || :
+%{_sbindir}/alternatives --remove emacs %{_bindir}/emacs-%{version}
 
 %posttrans
-%{_sbindir}/alternatives --install %{_bindir}/emacs emacs %{_bindir}/emacs-%{version} 80 || :
+%{_sbindir}/alternatives --install %{_bindir}/emacs emacs %{_bindir}/emacs-%{version} 80
 
 %if %{enable_lucid}
 %preun lucid
-%{_sbindir}/alternatives --remove emacs %{_bindir}/emacs-%{version}-lucid || :
-%{_sbindir}/alternatives --remove emacs-lucid %{_bindir}/emacs-%{version}-lucid || :
+%{_sbindir}/alternatives --remove emacs %{_bindir}/emacs-%{version}-lucid
+%{_sbindir}/alternatives --remove emacs-lucid %{_bindir}/emacs-%{version}-lucid
 
 %posttrans lucid
-%{_sbindir}/alternatives --install %{_bindir}/emacs emacs %{_bindir}/emacs-%{version}-lucid 70 || :
-%{_sbindir}/alternatives --install %{_bindir}/emacs-lucid emacs-lucid %{_bindir}/emacs-%{version}-lucid 60 || :
+%{_sbindir}/alternatives --install %{_bindir}/emacs emacs %{_bindir}/emacs-%{version}-lucid 70
+%{_sbindir}/alternatives --install %{_bindir}/emacs-lucid emacs-lucid %{_bindir}/emacs-%{version}-lucid 60
 %endif
 
 %if %{enable_nox}
 %preun nox
-%{_sbindir}/alternatives --remove emacs %{_bindir}/emacs-%{version}-nox || :
-%{_sbindir}/alternatives --remove emacs-nox %{_bindir}/emacs-%{version}-nox || :
+%{_sbindir}/alternatives --remove emacs %{_bindir}/emacs-%{version}-nox
+%{_sbindir}/alternatives --remove emacs-nox %{_bindir}/emacs-%{version}-nox
 
 %posttrans nox
-%{_sbindir}/alternatives --install %{_bindir}/emacs emacs %{_bindir}/emacs-%{version}-nox 70 || :
-%{_sbindir}/alternatives --install %{_bindir}/emacs-nox emacs-nox %{_bindir}/emacs-%{version}-nox 60 || :
+%{_sbindir}/alternatives --install %{_bindir}/emacs emacs %{_bindir}/emacs-%{version}-nox 70
+%{_sbindir}/alternatives --install %{_bindir}/emacs-nox emacs-nox %{_bindir}/emacs-%{version}-nox 60
 %endif
 
 %preun common
-%{_sbindir}/alternatives --remove emacs.etags %{_bindir}/etags.emacs || :
+%{_sbindir}/alternatives --remove emacs.etags %{_bindir}/etags.emacs
 
 %posttrans common
 %{_sbindir}/alternatives --install %{_bindir}/etags emacs.etags %{_bindir}/etags.emacs 80 \
-       --slave %{_mandir}/man1/etags.1.gz emacs.etags.man %{_mandir}/man1/etags.emacs.1.gz || :
+       --slave %{_mandir}/man1/etags.1.gz emacs.etags.man %{_mandir}/man1/etags.emacs.1.gz
 
 %files
 %{_bindir}/emacs-%{version}
 %{_bindir}/emacs-%{version}.pdmp
 %attr(0755,-,-) %ghost %{_bindir}/emacs
 %{_datadir}/applications/emacs.desktop
+%{_datadir}/applications/emacsclient.desktop
 %{_datadir}/applications/emacs-mail.desktop
-%{_datadir}/appdata/%{name}.appdata.xml
+%{_datadir}/applications/emacsclient-mail.desktop
+%{_datadir}/metainfo/%{name}.metainfo.xml
 %{_datadir}/icons/hicolor/*/apps/emacs.png
 %{_datadir}/icons/hicolor/scalable/apps/emacs.svg
 %{_datadir}/icons/hicolor/scalable/apps/emacs.ico
 %{_datadir}/icons/hicolor/scalable/mimetypes/emacs-document.svg
+%{_datadir}/glib-2.0/schemas/org.gnu.emacs.defaults.gschema.xml
 
 %if %{enable_lucid}
 %files lucid
 %{_bindir}/emacs-%{version}-lucid
-%{_bindir}/emacs-%{version}-lucid.pdmp
 %attr(0755,-,-) %ghost %{_bindir}/emacs
 %attr(0755,-,-) %ghost %{_bindir}/emacs-lucid
 %endif
@@ -501,7 +466,6 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/*.desktop
 %if %{enable_nox}
 %files nox
 %{_bindir}/emacs-%{version}-nox
-%{_bindir}/emacs-%{version}-nox.pdmp
 %attr(0755,-,-) %ghost %{_bindir}/emacs
 %attr(0755,-,-) %ghost %{_bindir}/emacs-nox
 %endif
@@ -540,49 +504,8 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/*.desktop
 %{_includedir}/emacs-module.h
 
 %changelog
-* Fri Mar 18 2022 Andreas Theodosiou <atheodosiou@protonmail.ch> - 2:29.0.50
-- Build with pgtk directly from development branch
-
-* Sat Aug  7 2021 Dan Čermák <dan.cermak@cgc-instruments.com> - 1:27.2-9
-- Add Requires: info to fix info-mode
-- Fixes rhbz#1989264
-
-* Wed Jul 21 2021 Fedora Release Engineering <releng@fedoraproject.org> - 1:27.2-8
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
-
-* Sun Jul 11 2021 Dan Čermák <dan.cermak@cgc-instruments.com> - 1:27.2-7
-- Add patch to fix pdump page size incompatibility
-- Fixes rhbz#1974244
-
-* Sun Jun 13 2021 Dan Čermák <dan.cermak@cgc-instruments.com> - 1:27.2-6
-- Swallow %%preun and %%posttrans scriptlet exit status
-- Fixes rhbz#1962181
-
-* Sat Jun  5 2021 Peter Oliver <rpm@mavit.org.uk> - 1:27.2-5
-- Validate AppStream metainfo.
-
-* Tue May 25 2021 Peter Oliver <rpm@mavit.org.uk> - 1:27.2-4
-- Prefer upstream emacs.desktop.
-- Remove duplicate emacs.desktop from /usr/share/emacs/27.2/etc/.
-
-* Mon Apr 26 2021 Dan Čermák <dan.cermak@cgc-instruments.com> - 1:27.2-3
-- Add emacs-modula2.patch
-- Fixes rhbz#1950158
-
-* Sat Mar 27 2021 Peter Oliver <rpm@mavit.org.uk> - 1:27.2-2
-- Prefer upstream systemd service definition.
-
-* Sat Mar 27 2021 Scott Talbert <swt@techie.net> - 1:27.1-5
-- Fix FTBFS with glibc 2.34
-
-* Thu Mar 25 2021 Bhavin Gandhi <bhavin7392@gmail.com> - 1:27.2-1
-- emacs-27.2 is available
-
-* Fri Feb 05 2021 Peter Oliver <rpm@mavit.org.uk> - 1:27.1-4
-- Make Enchant the default for ispell-program-name when available.
-
-* Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 1:27.1-3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+* Tue Aug 18 2020 Maximiliano Sandoval <msandova@protonmail.com> - 1:28.0.50-1
+- Build for emacs 28.0.50 with pgtk and native-comp
 
 * Tue Aug 18 2020 Jan Synáček <jsynacek@redhat.com> - 1:27.1-2
 - use make macros (original patch provided by Tom Stellard)
