@@ -22,7 +22,7 @@ Source0:       https://github.com/emacs-mirror/emacs/archive/%{commit}/%{name}-%
 # wget https://ftp.gnu.org/gnu/gnu-keyring.gpg
 # gpg2 --import gnu-keyring.gpg
 # gpg2 --armor --export D405AA2C862C54F17EEE6BE0E8BCD7866AFCF978 > gpgkey-D405AA2C862C54F17EEE6BE0E8BCD7866AFCF978.gpg
-Source2:       gpgkey-D405AA2C862C54F17EEE6BE0E8BCD7866AFCF978.gpg
+# Source2:       gpgkey-D405AA2C862C54F17EEE6BE0E8BCD7866AFCF978.gpg
 # Source3:       emacs.desktop
 Source4:       dotemacs.el
 Source5:       site-start.el
@@ -406,7 +406,7 @@ cat el-*-files common-lisp-dir-files > el-filelist
 rm %{buildroot}%{_datadir}/icons/hicolor/scalable/mimetypes/emacs-document23.svg
 
 # remove debug info
-rm -rf %{buildroot}%{prefix}/lib/debug/usr/libexec/emacs/28.0.50
+rm -rf %{buildroot}%{prefix}/lib/debug/usr/libexec/emacs/29.0.50
 
 %preun
 %{_sbindir}/alternatives --remove emacs %{_bindir}/emacs-%{version}
