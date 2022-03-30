@@ -34,6 +34,7 @@ Source9:       emacs.service
 
 Patch1:        emacs-spellchecker.patch
 Patch2:        emacs-system-crypto-policies.patch
+Patch3:        emacs-libdir-vs-systemd.patch
 
 BuildRequires: gcc
 BuildRequires: atk-devel
@@ -202,6 +203,7 @@ Development header files for Emacs.
 
 %patch1 -p1 -b .spellchecker
 %patch2 -p1 -b .system-crypto-policies
+%patch3 -p1 -b .libdir-vs-systemd
 
 ./autogen.sh
 
@@ -504,6 +506,12 @@ rm -rf %{buildroot}%{prefix}/lib/debug/usr/libexec/emacs/29.0.50
 %{_includedir}/emacs-module.h
 
 %changelog
+* Wed Mar 30 2022 Andreas Theodosiou <atheodosiou@protonmail.ch> - 1:29.0.50-1.20220328.git0e7314f
+- Add back emacs-libdir-vs-systemd.patch
+
+* Fri Mar 18 2022 Andreas Theodosiou <atheodosiou@protonmail.ch> - 1:29.0.50
+- Build with pgtk directly from development branch
+
 * Tue Aug 18 2020 Maximiliano Sandoval <msandova@protonmail.com> - 1:28.0.50-1
 - Build for emacs 28.0.50 with pgtk and native-comp
 

@@ -1,5 +1,5 @@
 # Emacs-pgtk-git
-This is a fork of Wojtek242-RPM's Emacs RPM build. It tracks Emacs' development
+This is a fork of Wojtek242-RPM's and A6GibKm's Emacs RPM builds. It tracks Emacs' development
 branch and builds Emacs with the pgtk flag.
 
 
