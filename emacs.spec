@@ -376,7 +376,7 @@ rm -f %{buildroot}%{_infodir}/dir
 # Installing service file
 mkdir -p %{buildroot}%{_userunitdir}
 # Emacs 26.1 installs the upstream unit file to /usr/lib64 on 64bit archs, we don't want that
-mv %{buildroot}/usr/lib64/systemd/user/emacs.service %{buildroot}%{_userunitdir}/emacs.service
+# mv %{buildroot}/usr/lib64/systemd/user/emacs.service %{buildroot}%{_userunitdir}/emacs.service
 
 # Install desktop files
 mkdir -p %{buildroot}%{_datadir}/applications
@@ -384,6 +384,8 @@ mkdir -p %{buildroot}%{_datadir}/applications
 #                      %SOURCE3
 desktop-file-install --dir=%{buildroot}%{_datadir}/applications \
                      %SOURCE7
+# Remove duplicate desktop-related files
+rm %{buildroot}%{_datadir}/%{name}/%{version}/etc/%{name}.{desktop,service}
 
 #
 # Create file lists
