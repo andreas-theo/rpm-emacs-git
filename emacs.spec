@@ -1,6 +1,6 @@
 %global _hardened_build 1
 
-%global commit      b075a59a1a4ddfd0668da4fb2312a6ec747dd53b
+%global commit      59a798b3f0bd91e6112c080a8c80c22998e8ee3e
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 %global commit_date 20220707
 %global gitrel      .%{commit_date}.git%{shortcommit}
